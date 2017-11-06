@@ -1,5 +1,6 @@
 const URL = require("url");
 const find = require("puppeteer-find");
+const chain = require("promise-train");
 
 
 function install(Puppeteer = require('puppeteer-extensible')) {
@@ -8,8 +9,45 @@ function install(Puppeteer = require('puppeteer-extensible')) {
 
 
 const extensions = {
+  Browser: {
+    prototype: {
+      chain
+    }
+  },
+  ElementHandle: {
+    prototype: {
+      chain,
+      find(...args) {
+        return this.executionContext().find(this, ...args);
+      },
+      findWhere(...args) {
+        return this.executionContext().findWhere(this, ...args);
+      }
+    }
+  },
+  ExecutionContext: {
+    prototype: {
+      chain,
+      find: find.find,
+      findWhere: find.findWhere
+    }
+  },
+  Frame: {
+    prototype: {
+      chain
+    }
+  },
+  JSHandle: {
+    prototype: {
+      chain,
+      getPropertyValue(prop) {
+        return this.getProperty(prop).then(handle => handle.jsonValue());
+      }
+    }
+  },
   Page: {
     prototype: {
+      chain,
       find: find.find,
       findWhere: find.findWhere,
       clickAndWait(...args) {
@@ -29,29 +67,6 @@ const extensions = {
       }
     }
   },
-  JSHandle: {
-    prototype: {
-      getPropertyValue(prop) {
-        return this.getProperty(prop).then(handle => handle.jsonValue());
-      }
-    }
-  },
-  ElementHandle: {
-    prototype: {
-      find(...args) {
-        return this.executionContext().find(this, ...args);
-      },
-      findWhere(...args) {
-        return this.executionContext().findWhere(this, ...args);
-      }
-    }
-  },
-  ExecutionContext: {
-    prototype: {
-      find: find.find,
-      findWhere: find.findWhere
-    }
-  }
 }
 
 extensions.Page.clickLink = extensions.Page.clickAndWait;
